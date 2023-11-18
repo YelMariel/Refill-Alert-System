@@ -24,8 +24,6 @@ export default function Home() {
 
   useEffect(() => {
     fetchData(); // Initial fetch
-
-    // Fetch data every 10 seconds
     const intervalId = setInterval(() => {
       fetchData();
     }, 5000);
