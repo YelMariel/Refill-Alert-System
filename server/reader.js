@@ -21,18 +21,26 @@ app.use(cors());
 
 // READ (select)
 app.get("/stuffs", (req, res) => {
-  connection.query("SELECT * FROM stats", (err, results) => {
+  connection.query("SELECT id, water_level, consumed FROM users", (err, results) => {
     try {
+      if (err) {
+        console.error(err);
+        res.status(500).json({ message: "Internal server error" });
+        return;
+      }
+
       if (results.length > 0) {
         res.json(results);
       } else {
         res.json({ message: "No data found." });
       }
     } catch (err) {
+      console.error(err);
       res.status(500).json({ message: "Internal server error" });
     }
   });
 });
+
 
 app.get("/inventory", (req, res) => {
   connection.query("SELECT * FROM inventory", (err, results) => {
