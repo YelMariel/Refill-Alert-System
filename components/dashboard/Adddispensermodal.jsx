@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import Disp from './dispenser';
 
@@ -7,14 +7,14 @@ function App() {
     const [showModal, setShowModal] = useState(false);
     const [registeredUsers, setRegisteredUsers] = useState([]);
     const [ipError, setIpError] = useState('');
-    const [registrationSuccess, setRegistrationSuccess] = useState(false); // Added state for registration success
+    const [registrationSuccess, setRegistrationSuccess] = useState(false);
     const [displayDisp, setDisplayDisp] = useState(true);
+    const [dispenserData, setDispenserData] = useState({});
 
     const handleIpAddressChange = (e) => {
         const enteredIp = e.target.value;
         setIpAddress(enteredIp);
 
-        // Regular expression for a simple IP address validation
         const ipRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 
         if (!ipRegex.test(enteredIp)) {
@@ -23,6 +23,29 @@ function App() {
             setIpError('');
         }
     };
+
+    const fetchDataForDispenser = async (ipAddress) => {
+        try {
+            const response = await fetch(`http://localhost:3002/users/${ipAddress}`);
+            if (response.ok) {
+                const data = await response.json();
+                setDispenserData((prevData) => ({
+                    ...prevData,
+                    [ipAddress]: data,
+                }));
+            } else {
+                console.error('Error fetching dispenser data.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+
+    useEffect(() => {
+        registeredUsers.forEach((ipAddress) => {
+            fetchDataForDispenser(ipAddress);
+        });
+    }, [registeredUsers]);
 
     const handleSubmit = async () => {
         try {
@@ -36,61 +59,40 @@ function App() {
 
             if (response.ok) {
                 console.log('User registered successfully!');
-                // Update the list of registered users
-                setRegisteredUsers([...registeredUsers, ipAddress]);
-                // Clear the input field after successful registration
+                setRegisteredUsers([ipAddress]);
                 setIpAddress('');
-                // Set registration success to true
                 setRegistrationSuccess(true);
+                // Fetch data for the newly registered dispenser
+                fetchDataForDispenser(ipAddress);
             } else {
                 console.error('Error registering user.');
-                // Set registration success to false in case of an error
                 setRegistrationSuccess(false);
             }
         } catch (error) {
             console.error('Error:', error);
-            // Set registration success to false in case of an error
             setRegistrationSuccess(false);
         }
     };
 
-    const handleDelete = (index) => {
-        // Display a confirmation dialog before proceeding
-        const isConfirmed = window.confirm('Are you sure you want to delete this water dispenser?');
-
-        if (isConfirmed) {
-            // Create a copy of the registeredUsers array
-            const updatedUsers = [...registeredUsers];
-            // Remove the user at the specified index
-            updatedUsers.splice(index, 1);
-            // Update the state with the modified array
-            setRegisteredUsers(updatedUsers);
-        }
+    const handleDelete = () => {
+        setRegisteredUsers([]);
+        setDispenserData({});
     };
 
     const toggleModal = () => {
         setShowModal(!showModal);
-        // Reset registration success state when closing the modal
         setRegistrationSuccess(false);
     };
 
     const customModalStyles = {
         content: {
-            width: '50%', // Adjust the width as needed
-            height: '20%', // Adjust the height as needed
+            width: '50%',
+            height: '20%',
             margin: 'auto',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
         },
-    };
-    const closeButtonStyle = {
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-    };
-    const inputContainerStyle = {
-        marginBottom: '20px', // Adjust the margin as needed
     };
 
     return (
@@ -105,7 +107,7 @@ function App() {
                 contentLabel="Registration"
                 style={customModalStyles}
             >
-                <div style={inputContainerStyle}>
+                <div>
                     <label>
                         IP Address:
                         <input type="text" value={ipAddress} onChange={handleIpAddressChange} />
@@ -117,18 +119,23 @@ function App() {
                         Register
                     </button>
                 </div>
-                <button style={closeButtonStyle} onClick={toggleModal}>
+                <button style={{ position: 'absolute', top: '10px', right: '10px' }} onClick={toggleModal}>
                     Close
                 </button>
             </Modal>
-    
-            {/* Display the list of registered users in separate boxes */}
+
             {registeredUsers.map((user, index) => (
                 <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginTop: '20px' }}>
                     <h2>Water Dispenser {index + 1}</h2>
                     <p>{user}</p>
-                    {index === 0 && displayDisp && <Disp />}
-                    <button onClick={() => handleDelete(index)}>Delete</button>
+                    {index === 0 && displayDisp && <Disp data={dispenserData[user]} />}
+                    {dispenserData[user] && (
+                        <div>
+                            <h3>Water Level:</h3>
+                            <p>{dispenserData[user].water_level || 'N/A'}</p>
+                        </div>
+                    )}
+                    <button onClick={handleDelete}>Delete</button>
                 </div>
             ))}
         </div>
