@@ -11,7 +11,7 @@ const dbConfig = {
 
 const pool = mysql.createPool(dbConfig);
 
-function connectToDatabase() {
+async function connectToDatabase() {
   return new Promise((resolve, reject) => {
     pool.getConnection((err, connection) => {
       if (err) {
@@ -25,28 +25,17 @@ function connectToDatabase() {
   });
 }
 
-async function getEsp8266ServerIP() {
+async function getAllEsp8266ServerIPs() {
   try {
-    const [rows] = await pool.promise().query('SELECT * FROM users WHERE id = ?', [1]);
-
-    console.log('Type of rows:', typeof rows);
-    console.log('Structure of rows:', rows);
-
-    if (rows && rows.length > 0) {
-      const ipAddress = rows[0].ip_address;
-      console.log('Real IP address found in esp8266_server table:', ipAddress);
-      return ipAddress;
-    } else {
-      console.error('Warning: No record found in esp8266_server table. Using default IP address.');
-      return null; // Use an appropriate default IP address
-    }
+    const [rows] = await pool.promise().query('SELECT * FROM users');
+    return rows.map(row => row.ip_address);
   } catch (error) {
-    console.error('Error fetching ESP8266 server IP from MySQL:', error);
-    return null;
+    console.error('Error fetching all ESP8266 server IPs from MySQL:', error);
+    return [];
   }
 }
 
-async function fetchDataFromESP8266(ipAddress) {
+async function fetchDataFromESP8266AndUpdateDB(ipAddress) {
   try {
     if (!ipAddress) {
       console.log('Skipping data fetch from ESP8266 due to missing server IP.');
@@ -60,8 +49,10 @@ async function fetchDataFromESP8266(ipAddress) {
       console.log('Received data from ESP8266:', data.water_level);
 
       await Promise.all([
-        pool.promise().execute('UPDATE stats SET water_level = ? WHERE id = ?', [data.water_level, 1]),
-        pool.promise().execute('UPDATE inventory SET consumed = ? WHERE id = ?', [data.consumed, 1]),
+        updateDatabase('stats', 'water_level', data.water_level),
+        updateDatabase('inventory', 'consumed', data.consumed),
+        updateDatabase('users', 'water_level', data.water_level, ipAddress),
+        updateDatabase('users', 'consumed', data.consumed, ipAddress),
       ]);
 
       console.log('Data updated in MySQL');
@@ -73,36 +64,54 @@ async function fetchDataFromESP8266(ipAddress) {
   }
 }
 
+async function updateDatabase(table, column, value, ipAddress) {
+  const idQuery = `SELECT id FROM ${table} WHERE ip_address = ?`;
+  const [idResult] = await pool.promise().execute(idQuery, [ipAddress]);
+  const userId = idResult[0]?.id || 1; // Use the first ID found or a default value
+
+  const query = `UPDATE ${table} SET ${column} = ? WHERE id = ?`;
+
+  // Check if value is undefined, and set it to null if necessary
+  const sanitizedValue = value !== undefined ? value : null;
+
+  const [result] = await pool.promise().execute(query, [sanitizedValue, userId]);
+
+  return result;
+}
+
+async function fetchDataFromDatabase(table, column) {
+  const query = `SELECT ${column} FROM ${table}`;
+  const [result] = await pool.promise().query(query);
+  return result.map(row => row[column]);
+}
+
+
 async function startServer() {
   const app = express();
   const port = 3003;
 
   app.get('/getdatafromdb', async (req, res) => {
     try {
-      const [result] = await pool.promise().query('SELECT * FROM stats');
-      const rows = result[0];
-      res.json({ rows });
+      const waterLevelResult = await fetchDataFromDatabase('users', 'water_level');
+      const consumedResult = await fetchDataFromDatabase('users', 'consumed');
+  
+      console.log('Water Level:', waterLevelResult);
+      console.log('Consumed:', consumedResult);
+  
+      res.json({ water_level: waterLevelResult, consumed: consumedResult });
     } catch (error) {
       console.error('Error with MySQL:', error);
       res.status(500).json({ error: 'Failed to fetch data from MySQL' });
     }
   });
-
-  app.get('/inventorydb', async (req, res) => {
-    try {
-      const [result] = await pool.promise().query('SELECT * FROM inventory');
-      const rows = result[0];
-      res.json({ rows });
-    } catch (error) {
-      console.error('Error with MySQL:', error);
-      res.status(500).json({ error: 'Failed to fetch data from MySQL' });
-    }
-  });
+  
 
   app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
   });
 }
+
+
 
 async function main() {
   try {
@@ -114,12 +123,14 @@ async function main() {
   }
 
   setInterval(async () => {
-    const esp8266ServerIP = await getEsp8266ServerIP();
+    const esp8266ServerIPs = await getAllEsp8266ServerIPs();
 
-    if (esp8266ServerIP) {
-      await fetchDataFromESP8266(esp8266ServerIP);
+    if (esp8266ServerIPs.length > 0) {
+      for (const ipAddress of esp8266ServerIPs) {
+        await fetchDataFromESP8266AndUpdateDB(ipAddress);
+      }
     } else {
-      console.log('Skipping data fetch from ESP8266 due to missing server IP.');
+      console.log('Skipping data fetch from ESP8266 due to missing server IPs.');
     }
   }, 10000);
 }
