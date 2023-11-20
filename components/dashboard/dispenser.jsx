@@ -1,89 +1,78 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import styles from '../styles/Home.module.css';
+import Adding from '../components/Adddispensermodal';
 
-export default function Home() {
+const Disp = ({ data }) => {
+  if (!data || (!Array.isArray(data) && !Array.isArray(data.data))) {
+    // Handle the case where data is not an array (you might want to customize this based on your requirements)
+    return <p>No data available</p>;
+  }
+
+  const dataArray = Array.isArray(data) ? data : data.data;
+
+  return (
+    <div className="col-lg-6 col-md-12 align-items-center">
+      <div className="row">
+        {dataArray.map((value) => (
+          <div
+            className="col-lg-4 col-md-6 col-sm-12 align-items-center"
+            key={value.id}
+          >
+            <div className="card m-3">
+              <div className="card-body">
+                <h5 className="card-title">{value.ip_address}</h5>
+                <div className="card-text">
+                  <strong>Status:</strong>{" "}
+                  <span id="status">{value.water_level}</span>
+                </div>
+                <div className="card-text">
+                  <strong>Consumed:</strong>{" "}
+                  <span id="label">{value.consumed}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        <div>
+          
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Home = () => {
+  const router = useRouter();
+
   const [data, setData] = useState([]);
-  const [isLoading, setLoading] = useState(false);
-  const [prevData, setPrevData] = useState([]);
+  const [isLoading, setLoading] = useState(true);
 
-  const fetchData = () => {
-    setLoading(true);
+  useEffect(() => {
     fetch("http://localhost:3002/stuffs")
       .then((res) => res.json())
-      .then((newData) => {
+      .then((responseData) => {
+        setData(responseData);
         setLoading(false);
-        if (JSON.stringify(newData) !== JSON.stringify(prevData)) {
-          setData(newData);
-          setPrevData(newData);
-        }
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
         setLoading(false);
       });
-  };
-
-  useEffect(() => {
-    fetchData(); // Initial fetch
-    const intervalId = setInterval(() => {
-      fetchData();
-    }, 5000);
-
-    // Cleanup interval on component unmount
-    return () => clearInterval(intervalId);
   }, []);
 
-  // Function to render data for a specific ID
-  const renderDataForId = (id) => {
-    const filteredData = data.filter((value) => value.id === id);
-
-    return (
-      <div key={`container-${id}`}>
-        <h2 className="fw-bold fs-10">Water Level (ID {id})</h2>
-        {filteredData.map((value) => (
-          <div key={value.id}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <p>HIGH</p>
-              <div
-                style={{
-                  width: "30px",
-                  height: "30px",
-                  backgroundColor:
-                    value.water_level === "HIGH" ? "green" : "transparent",
-                  borderRadius: "50%",
-                  marginRight: "50px",
-                  marginLeft: "50px",
-                  border: "1px solid black",
-                }}
-              ></div>
-              <p>LOW</p>
-              <div
-                style={{
-                  width: "30px",
-                  height: "30px",
-                  backgroundColor:
-                    value.water_level === "LOW" ? "red" : "transparent",
-                  borderRadius: "50%",
-                  border: "1px solid black",
-                }}
-              ></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  // Extract unique ids from the data
-  const uniqueIds = [...new Set(data.map((item) => item.id))];
+  if (isLoading) return <p>Loading...</p>;
 
   return (
-    <div>
-      {uniqueIds.map((id) => renderDataForId(id))}
+    <div className={styles.container}>
+      <div className="row">
+        <div className="col-lg-6 col-md-12">
+          {/* Add content for the left column if needed */}
+        </div>
+        <Disp data={data} />
+      </div>
     </div>
   );
-}
+};
+
+export default Home;
