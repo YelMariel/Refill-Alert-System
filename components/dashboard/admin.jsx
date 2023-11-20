@@ -1,18 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import ToggleSwitch from './switch'; // Adjust the path to the actual location of your ToggleSwitch component
-import Disp from '../../components/dispenser';
 import styles from "../../styles/bg.module.css"; // Adjust the relative path to match your project structure
-import Change from '../../components/postreq';
 import Logs from '../../components/inventory';
-import Adding from '../../components/Adddispensermodal'
+import Adding from '../../components/Adddispensermodal';
+import Switch from '../../components/switch1';
+import Disp from  '../dispenser';
 
 
 
-  const loadSavedTexts = () => {
-    const savedTexts = localStorage.getItem('savedTexts');
-    return savedTexts ? JSON.parse(savedTexts) : [];
-  };
+
 
 function DateTimeComponent() {
   const [currentDateTime, setCurrentDateTime] = useState('');
@@ -75,23 +72,12 @@ export default function Dashboard({ user }) {
   }
 
   const [activeTab, setActiveTab] = useState('Dashboard');
-  const [showModal, setShowModal] = useState(false); // State to control the modal visibility
-  const [inputText, setInputText] = useState(''); // State to store user input
-  const [savedTexts, setSavedTexts] = useState([]); // State to store entered texts
   const [maxRefills, setMaxRefills] = useState(0); // State to store the maximum refills
-  const [showRegisterBox, setShowRegisterBox] = useState(false);
 
-  const handleRegisterButtonClick = () => {
-    // Perform your registration logic here
-    // For now, let's just toggle the visibility of the box
-    setShowRegisterBox(!showRegisterBox);
 
-  };
 
   // Function to save the entered text to local storage
-  const saveTextToLocalStorage = (texts) => {
-    localStorage.setItem('savedTexts', JSON.stringify(texts));
-  };
+ 
 
   // Function to handle changes in maximum refills
   const handleMaxRefillsChange = () => {
@@ -105,36 +91,8 @@ export default function Dashboard({ user }) {
   };
 
 
-
-  const handleDeleteText = (index) => {
-    // Remove the saved text at the specified index
-    const updatedTexts = [...savedTexts];
-    updatedTexts.splice(index, 1);
-    setSavedTexts(updatedTexts);
-    // Save the updated texts to local storage
-    saveTextToLocalStorage(updatedTexts);
-  };
-  const handleSaveText = () => {
-    // Update the list of saved texts with the entered text
-    const updatedTexts = [...savedTexts, inputText];
-    setSavedTexts(updatedTexts);
-    // Save the updated texts to local storage
-    saveTextToLocalStorage(updatedTexts);
-
-    // Close the modal
-    setShowModal(false);
-  };
-
   const renderSavedTexts = () => { 
-    const outerBoxStyle = {
-      width: 'auto', // Adjust the width as needed
-      height: 'auto', // Adjust the height as needed
-      border: '1px solid #000',
-      backgroundColor: '#D9D9D9',
-      padding: '10px',
-      margin: '10px', // Adjust the margin as needed
-      borderRadius: '15px', // Adjust the borderRadius to your desired value
-    };
+    
   };
 
   const renderTabContent = () => {
@@ -142,8 +100,9 @@ export default function Dashboard({ user }) {
       case 'Dashboard':
         return (
           <div className="row">
-            <Disp /> 
+            
             {renderSavedTexts()}
+            <Disp/>
             <Adding/>
        </div>
         );
@@ -189,6 +148,7 @@ export default function Dashboard({ user }) {
             <div>
               <h2 className="fw-bold fs-5">Dispenser Switch</h2>
               <ToggleSwitch />
+              <Switch/>
             </div>
           );
        
