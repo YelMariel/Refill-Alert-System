@@ -24,29 +24,6 @@ function App() {
         }
     };
 
-    const fetchDataForDispenser = async (ipAddress) => {
-        try {
-            const response = await fetch(`http://localhost:3002/users/${ipAddress}`);
-            if (response.ok) {
-                const data = await response.json();
-                setDispenserData((prevData) => ({
-                    ...prevData,
-                    [ipAddress]: data,
-                }));
-            } else {
-                console.error('Error fetching dispenser data.');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    };
-
-    useEffect(() => {
-        registeredUsers.forEach((ipAddress) => {
-            fetchDataForDispenser(ipAddress);
-        });
-    }, [registeredUsers]);
-
     const handleSubmit = async () => {
         try {
             const response = await fetch('http://localhost:3001/register', {
@@ -62,8 +39,8 @@ function App() {
                 setRegisteredUsers([ipAddress]);
                 setIpAddress('');
                 setRegistrationSuccess(true);
-                // Fetch data for the newly registered dispenser
-                fetchDataForDispenser(ipAddress);
+              
+                
             } else {
                 console.error('Error registering user.');
                 setRegistrationSuccess(false);
@@ -74,10 +51,7 @@ function App() {
         }
     };
 
-    const handleDelete = () => {
-        setRegisteredUsers([]);
-        setDispenserData({});
-    };
+    
 
     const toggleModal = () => {
         setShowModal(!showModal);
@@ -97,7 +71,7 @@ function App() {
 
     return (
         <div className="App">
-            <h1>Device Registration</h1>
+            
             <button onClick={toggleModal}>
                 {showModal ? 'Close' : 'Add Water Dispenser'}
             </button>
@@ -124,20 +98,7 @@ function App() {
                 </button>
             </Modal>
 
-            {registeredUsers.map((user, index) => (
-                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginTop: '20px' }}>
-                    <h2>Water Dispenser {index + 1}</h2>
-                    <p>{user}</p>
-                    {index === 0 && displayDisp && <Disp data={dispenserData[user]} />}
-                    {dispenserData[user] && (
-                        <div>
-                            <h3>Water Level:</h3>
-                            <p>{dispenserData[user].water_level || 'N/A'}</p>
-                        </div>
-                    )}
-                    <button onClick={handleDelete}>Delete</button>
-                </div>
-            ))}
+
         </div>
     );
 }
