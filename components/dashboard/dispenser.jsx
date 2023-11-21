@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import styles from '../styles/Home.module.css';
-import Adding from '../components/Adddispensermodal';
 
 const Disp = ({ data }) => {
   if (!data || (!Array.isArray(data) && !Array.isArray(data.data))) {
@@ -12,31 +11,34 @@ const Disp = ({ data }) => {
   const dataArray = Array.isArray(data) ? data : data.data;
 
   return (
-    <div className="col-lg-6 col-md-12 align-items-center">
+    <div className="col-lg-6 col-md-12">
       <div className="row">
         {dataArray.map((value) => (
-          <div
-            className="col-lg-4 col-md-6 col-sm-12 align-items-center"
-            key={value.id}
-          >
-            <div className="card m-3">
+          <div className="col-lg-4 col-md-6 mb-4" key={value.id}>
+            <div className="card">
               <div className="card-body">
-                <h5 className="card-title">{value.ip_address}</h5>
+                <h5 className="card-title"></h5>
                 <div className="card-text">
                   <strong>Status:</strong>{" "}
-                  <span id="status">{value.water_level}</span>
+                  <span id="status"></span>
+                  <div className="d-flex justify-content-between mt-1">
+                  <p>HIGH</p>
+                  {/* Indicator for HIGH data */}
+                  <div style={{ backgroundColor: value.water_level === "HIGH" ? "green" : "transparent", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid darkgreen" }}></div>
+                  <p>LOW</p>
+                  {/* Indicator for LOW data */}
+                  <div style={{ backgroundColor: value.water_level === "LOW" ? "red" : "transparent", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid darkred" }}></div>
+                </div>
                 </div>
                 <div className="card-text">
                   <strong>Consumed:</strong>{" "}
                   <span id="label">{value.consumed}</span>
                 </div>
+                
               </div>
             </div>
           </div>
         ))}
-        <div>
-          
-        </div>
       </div>
     </div>
   );
@@ -47,21 +49,37 @@ const Home = () => {
 
   const [data, setData] = useState([]);
   const [isLoading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [totalConsumed, setTotalConsumed] = useState(0);
 
   useEffect(() => {
     fetch("http://localhost:3002/stuffs")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch data");
+        }
+        return res.json();
+      })
       .then((responseData) => {
-        setData(responseData);
-        setLoading(false);
+        if (responseData && (Array.isArray(responseData) || Array.isArray(responseData.data))) {
+          setData(responseData);
+          // Calculate total consumed data
+          const newTotalConsumed = responseData.reduce((acc, value) => acc + value.consumed, 0);
+          setTotalConsumed(newTotalConsumed);
+          setLoading(false);
+        } else {
+          throw new Error("Invalid data format");
+        }
       })
       .catch((error) => {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching data:", error.message);
+        setError("Failed to fetch data. Please try again later.");
         setLoading(false);
       });
   }, []);
 
   if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
     <div className={styles.container}>
@@ -70,6 +88,10 @@ const Home = () => {
           {/* Add content for the left column if needed */}
         </div>
         <Disp data={data} />
+        {/* Display total consumed data outside the Disp component */}
+        <div className="col-lg-6 col-md-12">
+          <h2>Total Consumed: {totalConsumed}</h2>
+        </div>
       </div>
     </div>
   );
