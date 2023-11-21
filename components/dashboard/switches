@@ -1,0 +1,103 @@
+import React, { useState, useEffect } from "react";
+import styles from '../styles/Home.module.css';
+
+const Disp = ({ data }) => {
+  const handlePostToIPAddress = async (ipAddress) => {
+    try {
+      // Perform the POST request to the mapped IP address
+      const response = await fetch(`http://${ipAddress}/post-endpoint`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ key: "value" }), // Adjust the data you want to send
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to post data");
+      }
+
+      console.log("POST successful");
+    } catch (error) {
+      console.error("Error posting data:", error.message);
+    }
+  };
+
+  if (!data || (!Array.isArray(data) && !Array.isArray(data.data))) {
+    // Handle the case where data is not an array (customize based on your requirements)
+    return <p>No data available</p>;
+  }
+
+  const dataArray = Array.isArray(data) ? data : data.data;
+
+  return (
+    <div className="col-lg-6 col-md-12 align-items-center">
+      <div className="row">
+        {dataArray.map((value) => (
+          <div
+            className="col-lg-4 col-md-6 col-sm-12 align-items-center"
+            key={value.id}
+          >
+            <div className="card m-3">
+              <div className="card-body">
+                <h5 className="card-title">{value.ip_address}</h5>
+                <button onClick={() => handlePostToIPAddress(value.ip_address)}>
+                  Post to IP Address
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const Home = () => {
+  const [data, setData] = useState([]);
+  const [isLoading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch("http://localhost:3002/stuffs");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch data");
+        }
+
+        const responseData = await response.json();
+
+        if (responseData && (Array.isArray(responseData) || Array.isArray(responseData.data))) {
+          setData(responseData);
+        } else {
+          throw new Error("Invalid data format");
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error.message);
+        setError("Failed to fetch data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
+
+  return (
+    <div className={styles.container}>
+      <div className="row">
+        <div className="col-lg-6 col-md-12">
+          {/* Add content for the left column if needed */}
+        </div>
+        <Disp data={data} />
+      </div>
+    </div>
+  );
+};
+
+export default Home;
