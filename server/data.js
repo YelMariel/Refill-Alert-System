@@ -49,11 +49,7 @@ async function fetchDataFromESP8266AndUpdateDB(ipAddress) {
       console.log('Received data from ESP8266:', data.water_level);
       await pool.promise().execute('UPDATE users SET water_level = ?, consumed = consumed + ? WHERE ip_address = ?', [data.water_level, data.consumed || 0, ipAddress]);
 
-      await Promise.all([
-        updateDatabase('users', 'water_level', data.water_level),
-        updateDatabase('users', 'water_level', data.water_level, ipAddress),
-        updateDatabase('users', 'consumed', data.consumed, ipAddress),
-      ]);
+      
       
       
       console.log('Data updated in MySQL');
