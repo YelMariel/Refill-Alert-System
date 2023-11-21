@@ -47,22 +47,24 @@ async function fetchDataFromESP8266AndUpdateDB(ipAddress) {
 
     if (data.water_level === 'HIGH' || data.water_level === 'LOW') {
       console.log('Received data from ESP8266:', data.water_level);
+      await pool.promise().execute('UPDATE users SET water_level = ?, consumed = consumed + ? WHERE ip_address = ?', [data.water_level, data.consumed || 0, ipAddress]);
 
       await Promise.all([
-        updateDatabase('stats', 'water_level', data.water_level),
-        updateDatabase('inventory', 'consumed', data.consumed),
+        updateDatabase('users', 'water_level', data.water_level),
         updateDatabase('users', 'water_level', data.water_level, ipAddress),
         updateDatabase('users', 'consumed', data.consumed, ipAddress),
       ]);
-
+      
+      
       console.log('Data updated in MySQL');
     } else {
       console.log('Invalid water level data:', data.water_level);
     }
   } catch (error) {
-    console.error('Error with ESP8266 or MySQL:', error);
+    console.error('Error with ESP8266 or MySQL:', error.message);
   }
 }
+
 
 async function updateDatabase(table, column, value, ipAddress) {
   const idQuery = `SELECT id FROM ${table} WHERE ip_address = ?`;
@@ -71,13 +73,14 @@ async function updateDatabase(table, column, value, ipAddress) {
 
   const query = `UPDATE ${table} SET ${column} = ? WHERE id = ?`;
 
-  // Check if value is undefined, and set it to null if necessary
-  const sanitizedValue = value !== undefined ? value : null;
+  // Do not set the value to null if it's undefined
+  const sanitizedValue = value !== undefined ? value : undefined;
 
   const [result] = await pool.promise().execute(query, [sanitizedValue, userId]);
 
   return result;
 }
+
 
 async function fetchDataFromDatabase(table, column) {
   const query = `SELECT ${column} FROM ${table}`;
