@@ -8,8 +8,8 @@ function App() {
     const [registeredUsers, setRegisteredUsers] = useState([]);
     const [ipError, setIpError] = useState('');
     const [registrationSuccess, setRegistrationSuccess] = useState(false);
-    const [displayDisp, setDisplayDisp] = useState(true);
-    const [dispenserData, setDispenserData] = useState({});
+    const [enteredIpAddress, setEnteredIpAddress] = useState('');
+
 
     const handleIpAddressChange = (e) => {
         const enteredIp = e.target.value;
