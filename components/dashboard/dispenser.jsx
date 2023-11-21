@@ -24,10 +24,10 @@ const Disp = ({ data }) => {
                   <div className="d-flex justify-content-between mt-1">
                   <p>HIGH</p>
                   {/* Indicator for HIGH data */}
-                  <div style={{ backgroundColor: value.water_level === "HIGH" ? "green" : "transparent", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid darkgreen" }}></div>
+                  <div style={{ backgroundColor: value.water_level === "HIGH" ? "green" : "transparent", width: "50px", height: "20px", borderRadius: "50%", border: "2px solid darkgreen" }}></div>
                   <p>LOW</p>
                   {/* Indicator for LOW data */}
-                  <div style={{ backgroundColor: value.water_level === "LOW" ? "red" : "transparent", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid darkred" }}></div>
+                  <div style={{ backgroundColor: value.water_level === "LOW" ? "red" : "transparent", width: "50px", height: "20px", borderRadius: "50%", border: "2px solid darkred" }}></div>
                 </div>
                 </div>
                 <div className="card-text">
@@ -43,7 +43,6 @@ const Disp = ({ data }) => {
     </div>
   );
 };
-
 const Home = () => {
   const router = useRouter();
 
@@ -52,7 +51,7 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [totalConsumed, setTotalConsumed] = useState(0);
 
-  useEffect(() => {
+  const fetchData = () => {
     fetch("http://localhost:3002/stuffs")
       .then((res) => {
         if (!res.ok) {
@@ -76,6 +75,18 @@ const Home = () => {
         setError("Failed to fetch data. Please try again later.");
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchData(); // Initial data fetch
+
+    // Set up an interval to fetch updated data every 5 seconds (adjust the interval as needed)
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 5000);
+
+    // Clean up the interval when the component is unmounted
+    return () => clearInterval(intervalId);
   }, []);
 
   if (isLoading) return <p>Loading...</p>;
