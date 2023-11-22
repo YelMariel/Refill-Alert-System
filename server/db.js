@@ -1,154 +1,134 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
-import styles from '../styles/Home.module.css';
+const express = require('express');
+const mysql = require('mysql2');
+const bodyParser = require('body-parser');
+const cors = require('cors');
 
+const app = express();
+const port = 3001;
 
-const Disp = ({ data }) => {
-  if (!data || (!Array.isArray(data) && !Array.isArray(data.data))) {
-    // Handle the case where data is not an array (you might want to customize this based on your requirements)
-    return <p>No data available</p>;
+// Create a connection pool
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'root',
+  password: 'mariel',
+  database: 'db_alert',
+  connectionLimit: 20, // Adjust this based on your requirements
+});
+
+app.use(cors());
+app.use(bodyParser.json());
+
+// CHECK IF DUPLICATE IP
+app.post('/checkDuplicate', (req, res) => {
+  const { ip_address } = req.body;
+
+  pool.query('SELECT 1 FROM users WHERE ip_address = ?', [ip_address], (selectErr, selectResults) => {
+    if (selectErr) {
+      console.error('Error checking for duplicate data:', selectErr);
+      res.status(500).json({ error: 'Error checking for duplicate data.' });
+    } else {
+      if (selectResults.length > 0) {
+        // Duplicate IP address found
+        const dupe = ip_address;
+        console.log('Duplicate IP address:', dupe);
+        res.status(200).json({ duplicate: true });
+      } else {
+        // No duplicate found
+        res.status(200).json({ duplicate: false });
+      }
+    }
+
+  });
+});
+
+let previousTotalConsumed = null;
+
+// FOR REGISTER
+app.post('/storeTotalConsumed', (req, res) => {
+  const { totalConsumed } = req.body;
+
+  // Check if the value has changed before storing
+  if (totalConsumed !== previousTotalConsumed) {
+    // Check if a record with ID 1 exists
+    pool.query('SELECT * FROM logs_consumed WHERE id = ?', [1], (selectErr, selectResults) => {
+      if (selectErr) {
+        console.error('Error checking for existing record:', selectErr);
+        res.status(500).json({ error: 'Error checking for existing record.' });
+        return;
+      }
+
+      if (selectResults.length > 0) {
+        // Update the existing record with ID 1
+        pool.query('UPDATE logs_consumed SET total_value = ? WHERE id = ?', [totalConsumed, 1], (updateErr, updateResults) => {
+          if (updateErr) {
+            console.error('Error updating total consumed data:', updateErr);
+            res.status(500).send('Error updating total consumed data');
+            return;
+          }
+
+          console.log('Total consumed data updated:', totalConsumed);
+
+          // Update the previous total consumed value
+          previousTotalConsumed = totalConsumed;
+
+          res.sendStatus(200);
+        });
+      } else {
+        // Insert a new record with ID 1
+        pool.query('INSERT INTO logs_consumed (id, total_value) VALUES (?, ?)', [1, totalConsumed], (insertErr, insertResults) => {
+          if (insertErr) {
+            console.error('Error inserting total consumed data:', insertErr);
+            res.status(500).send('Error inserting total consumed data');
+            return;
+          }
+
+          console.log('Total consumed data stored:', totalConsumed);
+
+          // Update the previous total consumed value
+          previousTotalConsumed = totalConsumed;
+
+          res.sendStatus(200);
+        });
+      }
+    });
+  } else {
+    console.log('Total consumed data unchanged. Skipping storage.');
+    res.sendStatus(200);
   }
+});
 
-  const handleDelete = async (id) => {
-    try {
-      await fetch(`http://localhost:3001/users/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
   
-      const updatedData = Array.isArray(data)
-        ? data.filter((item) => item.id !== id)
-        : data.data.filter((item) => item.id !== id);
-  
-      setData(updatedData);
-    } catch (error) {
-      console.error('Error deleting data:', error);
+// FOR DELETE
+// Delete a user by ID
+app.delete('/users/:id', async (req, res) => {
+  const userId = req.params.id;
+  try {
+    pool.query('DELETE FROM users WHERE id = ?', [userId]);
+    res.status(200).json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+});
+
+app.post('/storeTotalConsumed', (req, res) => {
+  const { totalConsumed } = req.body;
+
+  // Insert totalConsumed into the database
+  const insertQuery = 'INSERT INTO logs_consumed (total_value) VALUES (?)';
+  pool.query(insertQuery, [logs_consumed], (err, results) => {
+    if (err) {
+      console.error('Error inserting total consumed data:', err);
+      res.status(500).send('Error storing total consumed data');
+      return;
     }
-  };
 
-  const dataArray = Array.isArray(data) ? data : data.data;
+    console.log('Total consumed data stored:', totalConsumed);
+    res.sendStatus(200);
+  });
+});
 
- return (
-    <div className="col-lg-6 col-md-12">
-      <div className="row">
-        {dataArray.map((value) => (
-          <div className="col-lg-5 col-md-6 mb-4" key={value.id}>
-            <div className="card">
-              <div className="card-body">
-                <h5 className="card-title"></h5>
-                <div className="card-text">
-                  <strong>Status:</strong>{" "}
-                  <span id="status"></span>
-                  <div className="d-flex justify-content-between mt-1">
-                    <p>HIGH</p>
-                    {/* Indicator for HIGH data */}
-                    <div style={{ backgroundColor: value.water_level === "HIGH" ? "green" : "transparent", width: "50px", height: "20px", borderRadius: "50%", border: "2px solid darkgreen" }}></div>
-                    <p>LOW</p>
-                    {/* Indicator for LOW data */}
-                    <div style={{ backgroundColor: value.water_level === "LOW" ? "red" : "transparent", width: "50px", height: "20px", borderRadius: "50%", border: "2px solid darkred" }}></div>
-                  </div>
-                </div>
-                <div className="card-text">
-                  <strong>Consumed:</strong>{" "}
-                  <span id="label">{value.consumed}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}> <button onClick={() => handleDelete(value.id)}>Delete</button> </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
 
-const Home = () => {
-  const router = useRouter();
-
-  const [data, setData] = useState([]);
-  const [isLoading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [totalConsumed, setTotalConsumed] = useState(0);
-
-  const fetchData = () => {
-    fetch("http://localhost:3002/stuffs")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch data");
-        }
-        return res.json();
-      })
-      .then((responseData) => {
-        if (responseData && (Array.isArray(responseData) || Array.isArray(responseData.data))) {
-          setData(responseData);
-          // Calculate total consumed data
-          const newTotalConsumed = responseData.reduce((acc, value) => acc + value.consumed, 0);
-          setTotalConsumed(newTotalConsumed);
-  
-          // Store total consumed data
-          storeTotalConsumed(newTotalConsumed);
-  
-          setLoading(false);
-        } else {
-          throw new Error("Invalid data format");
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error.message);
-        setError("Failed to fetch data. Please try again later.");
-        setLoading(false);
-      });
-  };
-  
-
-  const storeTotalConsumed = async (totalConsumed) => {
-    try {
-      await fetch("http://localhost:3001/storeTotalConsumed", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ totalConsumed }),
-      });
-      console.log('Total consumed data stored successfully.');
-    } catch (error) {
-      console.error('Error storing total consumed data:', error);
-    }
-  };
-  
-
-  useEffect(() => {
-    fetchData(); // Initial data fetch
-
-    // Set up an interval to fetch updated data every 5 seconds (adjust the interval as needed)
-    const intervalId = setInterval(() => {
-      fetchData();
-    }, 5000);
-
-    // Clean up the interval when the component is unmounted
-    return () => clearInterval(intervalId);
-  }, []);
-
-  if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>{error}</p>;
-
-  return (
-    <div className={styles.container}>
-      <div className="row">
-        <div className="col-lg-6 col-md-12">
-          {/* Add content for the left column if needed */}
-        </div>
-        <Disp data={data} />
-        {/* Display total consumed data outside the Disp component */}
-        <div className="col-lg-6 col-md-12">
-          <h2>Total Consumed: {totalConsumed}</h2>
-
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Home;
