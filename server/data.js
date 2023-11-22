@@ -47,12 +47,16 @@ async function fetchDataFromESP8266AndUpdateDB(ipAddress) {
 
     if (data.water_level === 'HIGH' || data.water_level === 'LOW') {
       console.log('Received data from ESP8266:', data.water_level);
-      await pool.promise().execute('UPDATE users SET water_level = ?, consumed = consumed + ? WHERE ip_address = ?', [data.water_level, data.consumed || 0, ipAddress]);
+      console.log('Consumed value from ESP8266:', data.consumed);
 
-      
-      
+      let consumedIncrement = 0;
+      if (data.water_level === 'LOW') {
+        consumedIncrement = 1;
+}
+      await pool.promise().execute('UPDATE users SET water_level = ?, consumed = consumed + ? WHERE ip_address = ?', [data.water_level, data.consumed, ipAddress]);
       
       console.log('Data updated in MySQL');
+
     } else {
       console.log('Invalid water level data:', data.water_level);
     }
