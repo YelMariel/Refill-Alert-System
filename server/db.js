@@ -12,7 +12,7 @@ const pool = mysql.createPool({
   user: 'root',
   password: 'mariel',
   database: 'db_alert',
-  connectionLimit: 10, // Adjust this based on your requirements
+  connectionLimit: 20, // Adjust this based on your requirements
 });
 
 app.use(cors());
@@ -37,25 +37,67 @@ app.post('/checkDuplicate', (req, res) => {
         res.status(200).json({ duplicate: false });
       }
     }
+
   });
 });
+
+let previousTotalConsumed = null;
 
 // FOR REGISTER
-app.post('/register', (req, res) => {
-  const { ip_address } = req.body;
+app.post('/storeTotalConsumed', (req, res) => {
+  const { totalConsumed } = req.body;
 
-  // No duplicate found, proceed with the insertion
-  pool.query('INSERT INTO users (ip_address) VALUES (?)', [ip_address], (insertErr, insertResults) => {
-    if (insertErr) {
-      console.error('Error inserting data:', insertErr);
-      res.status(500).send('Error inserting data into the database.');
-    } else {
-      console.log('IP has been registered successfully!');
-      res.status(200).send('IP has been registered successfully!');
-    }
-  });
+  // Check if the value has changed before storing
+  if (totalConsumed !== previousTotalConsumed) {
+    // Check if a record with ID 1 exists
+    pool.query('SELECT * FROM logs_consumed WHERE id = ?', [1], (selectErr, selectResults) => {
+      if (selectErr) {
+        console.error('Error checking for existing record:', selectErr);
+        res.status(500).json({ error: 'Error checking for existing record.' });
+        return;
+      }
+
+      if (selectResults.length > 0) {
+        // Update the existing record with ID 1
+        pool.query('UPDATE logs_consumed SET total_value = ? WHERE id = ?', [totalConsumed, 1], (updateErr, updateResults) => {
+          if (updateErr) {
+            console.error('Error updating total consumed data:', updateErr);
+            res.status(500).send('Error updating total consumed data');
+            return;
+          }
+
+          console.log('Total consumed data updated:', totalConsumed);
+
+          // Update the previous total consumed value
+          previousTotalConsumed = totalConsumed;
+
+          res.sendStatus(200);
+        });
+      } else {
+        // Insert a new record with ID 1
+        pool.query('INSERT INTO logs_consumed (id, total_value) VALUES (?, ?)', [1, totalConsumed], (insertErr, insertResults) => {
+          if (insertErr) {
+            console.error('Error inserting total consumed data:', insertErr);
+            res.status(500).send('Error inserting total consumed data');
+            return;
+          }
+
+          console.log('Total consumed data stored:', totalConsumed);
+
+          // Update the previous total consumed value
+          previousTotalConsumed = totalConsumed;
+
+          res.sendStatus(200);
+        });
+      }
+    });
+  } else {
+    console.log('Total consumed data unchanged. Skipping storage.');
+    res.sendStatus(200);
+  }
 });
 
+  
 // FOR DELETE
 // Delete a user by ID
 app.delete('/users/:id', async (req, res) => {
@@ -67,6 +109,23 @@ app.delete('/users/:id', async (req, res) => {
     console.error('Error deleting user:', error);
     res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
+});
+
+app.post('/storeTotalConsumed', (req, res) => {
+  const { totalConsumed } = req.body;
+
+  // Insert totalConsumed into the database
+  const insertQuery = 'INSERT INTO logs_consumed (total_value) VALUES (?)';
+  pool.query(insertQuery, [logs_consumed], (err, results) => {
+    if (err) {
+      console.error('Error inserting total consumed data:', err);
+      res.status(500).send('Error storing total consumed data');
+      return;
+    }
+
+    console.log('Total consumed data stored:', totalConsumed);
+    res.sendStatus(200);
+  });
 });
 
 app.listen(port, () => {
