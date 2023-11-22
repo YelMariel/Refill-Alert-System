@@ -86,6 +86,10 @@ const Home = () => {
           // Calculate total consumed data
           const newTotalConsumed = responseData.reduce((acc, value) => acc + value.consumed, 0);
           setTotalConsumed(newTotalConsumed);
+  
+          // Store total consumed data
+          storeTotalConsumed(newTotalConsumed);
+  
           setLoading(false);
         } else {
           throw new Error("Invalid data format");
@@ -97,6 +101,23 @@ const Home = () => {
         setLoading(false);
       });
   };
+  
+
+  const storeTotalConsumed = async (totalConsumed) => {
+    try {
+      await fetch("http://localhost:3001/storeTotalConsumed", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ totalConsumed }),
+      });
+      console.log('Total consumed data stored successfully.');
+    } catch (error) {
+      console.error('Error storing total consumed data:', error);
+    }
+  };
+  
 
   useEffect(() => {
     fetchData(); // Initial data fetch
