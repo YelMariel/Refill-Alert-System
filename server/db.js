@@ -18,6 +18,24 @@ const pool = mysql.createPool({
 app.use(cors());
 app.use(bodyParser.json());
 
+
+app.post('/register', (req, res) => {
+  const { ip_address } = req.body;
+
+            // No duplicate found, proceed with the insertion
+            pool.query('INSERT INTO users (ip_address) VALUES (?)', [ip_address], (insertErr, insertResults) => {
+                if (insertErr) {
+                    console.error('Error inserting data:', insertErr);
+                    res.status(500).send('Error inserting data into the database.');
+                } else {
+                    console.log('IP has been registered successfully!');
+                    res.status(200).send('IP has been registered successfully!');
+                }
+            });
+        }
+    
+    );
+ 
 // CHECK IF DUPLICATE IP
 app.post('/checkDuplicate', (req, res) => {
   const { ip_address } = req.body;
@@ -131,4 +149,3 @@ app.post('/storeTotalConsumed', (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-
