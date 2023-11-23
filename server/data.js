@@ -49,36 +49,19 @@ async function fetchDataFromESP8266AndUpdateDB(ipAddress) {
       console.log('Received data from ESP8266:', data.water_level);
       console.log('Consumed value from ESP8266:', data.consumed);
 
-      await pool.promise().execute('UPDATE users SET water_level = ?, consumed = COALESCE(consumed, 0) + ? WHERE ip_address = ?', [data.water_level, data.consumed, ipAddress]);
+      
+
+        await pool.promise().execute('UPDATE users SET water_level = ?, consumed = COALESCE(consumed, 0) + ? WHERE ip_address = ?', [data.water_level, data.consumed, ipAddress]);
 
       console.log('Data updated in MySQL');
+
     } else {
-      console.log('Invalid water level data:');
+      console.log('Invalid water level data:', data.water_level);
     }
   } catch (error) {
     console.error('Error with ESP8266 or MySQL:', error.message);
-    // Clear data in the database when an error occurs
-    await clearDataForIP(ipAddress);
   }
 }
-
-
-async function clearDataForIP(ipAddress) {
-  try {
-    const [existingRecord] = await pool.promise().execute('SELECT id FROM users WHERE ip_address = ?', [ipAddress]);
-
-    if (existingRecord && existingRecord.length > 0) {
-      console.log(`Clearing data for IP address: ${ipAddress}`);
-      await pool.promise().execute('DELETE FROM users WHERE ip_address = ?', [ipAddress]);
-      console.log('Data cleared in MySQL for IP address:', ipAddress);
-    } else {
-      console.log(`No data found for IP address: ${ipAddress}. Skipping deletion.`);
-    }
-  } catch (error) {
-    console.error('Error clearing data for IP address:', ipAddress, error.message);
-  }
-}
-
 
 
 
