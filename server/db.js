@@ -20,21 +20,46 @@ app.use(bodyParser.json());
 
 
 app.post('/register', (req, res) => {
-  const { ip_address } = req.body;
+  const { ip_address, location } = req.body;
 
-            // No duplicate found, proceed with the insertion
-            pool.query('INSERT INTO users (ip_address) VALUES (?)', [ip_address], (insertErr, insertResults) => {
-                if (insertErr) {
-                    console.error('Error inserting data:', insertErr);
-                    res.status(500).send('Error inserting data into the database.');
-                } else {
-                    console.log('IP has been registered successfully!');
-                    res.status(200).send('IP has been registered successfully!');
-                }
-            });
-        }
-    
-    );
+  // Check for duplicate IP address
+  pool.query('SELECT * FROM users WHERE ip_address = ?', [ip_address], (selectErr, selectResults) => {
+      if (selectErr) {
+          console.error('Error checking for duplicate IP:', selectErr);
+          res.status(500).send('Error checking for duplicate IP.');
+      } else {
+          if (selectResults.length > 0) {
+              res.status(409).send('IP address already exists');
+          } else {
+              // No duplicate found, proceed with the insertion
+              pool.query('INSERT INTO users (ip_address, location) VALUES (?, ?)', [ip_address, location], (insertErr, insertResults) => {
+                  if (insertErr) {
+                      console.error('Error inserting data:', insertErr);
+                      res.status(500).send('Error inserting data into the database.');
+                  } else {
+                      console.log('User has been registered successfully!');
+                      res.status(200).send('User has been registered successfully!');
+                  }
+              });
+          }
+      }
+  });
+});
+
+app.put('/users/:id', (req, res) => {
+  const userId = req.params.id;
+  const { location, ip_address } = req.body;
+
+  pool.query('UPDATE users SET location = ?, ip_address = ? WHERE id = ?', [location, ip_address, userId], (err, results) => {
+    if (err) {
+      console.error('Error updating user:', err);
+      res.status(500).send('Error updating user.');
+    } else {
+      console.log('User updated successfully!');
+      res.status(200).send('User updated successfully!');
+    }
+  });
+});
  
 // CHECK IF DUPLICATE IP
 app.post('/checkDuplicate', (req, res) => {
@@ -115,6 +140,24 @@ app.post('/storeTotalConsumed', (req, res) => {
   }
 });
 
+// Retrieve all data from logs_consumed except id
+app.get('/getAllLogsConsumed', (req, res) => {
+  pool.query('SELECT * FROM logs_consumed WHERE id = ?', [1], (selectErr, selectResults) => {
+    if (selectErr) {
+      console.error('Error retrieving logs_consumed data:', selectErr);
+      res.status(500).json({ error: 'Error retrieving logs_consumed data.' });
+    } else {
+      if (selectResults.length > 0) {
+        const { id, ...dataWithoutId } = selectResults[0];
+        res.status(200).json(dataWithoutId);
+      } else {
+        res.status(404).json({ error: 'Logs_consumed data not found.' });
+      }
+    }
+  });
+});
+
+
   
 // FOR DELETE
 // Delete a user by ID
@@ -129,22 +172,7 @@ app.delete('/users/:id', async (req, res) => {
   }
 });
 
-app.post('/storeTotalConsumed', (req, res) => {
-  const { totalConsumed } = req.body;
 
-  // Insert totalConsumed into the database
-  const insertQuery = 'INSERT INTO logs_consumed (total_value) VALUES (?)';
-  pool.query(insertQuery, [logs_consumed], (err, results) => {
-    if (err) {
-      console.error('Error inserting total consumed data:', err);
-      res.status(500).send('Error storing total consumed data');
-      return;
-    }
-
-    console.log('Total consumed data stored:', totalConsumed);
-    res.sendStatus(200);
-  });
-});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
