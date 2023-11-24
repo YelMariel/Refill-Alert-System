@@ -9,6 +9,8 @@ function App() {
     const [ipError, setIpError] = useState('');
     const [registrationSuccess, setRegistrationSuccess] = useState(false);
     const [enteredIpAddress, setEnteredIpAddress] = useState('');
+    const [location, setLocation] = useState('');
+    const [locationError, setLocationError] = useState('');
 
 
     const handleIpAddressChange = (e) => {
@@ -22,7 +24,40 @@ function App() {
         } else {
             setIpError('');
         }
+        const checkForDuplicateIP = async (ip) => {
+            try {
+              const response = await fetch('http://localhost:3001/checkDuplicate', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ip_address: ip }),
+              });
+          
+              if (response.ok) {
+                const data = await response.json();
+                if (data.duplicate) {
+                  setIpError('IP address already exists');
+                } else {
+                  setIpError('');
+                }
+                const enteredLocation = location;
+                if (!enteredLocation.trim()) {
+                    setLocationError('Enter a location');
+                } else {
+                    setLocationError('');
+                }
+              } else {
+                console.error('Error checking IP existence:', response.statusText);
+                setIpError('Error checking IP existence');
+              }
+            } catch (error) {
+              console.error('Error checking IP existence:', error);
+              setIpError('Error checking IP existence');
+            }
+          };
     };
+
 
     const handleSubmit = async () => {
         try {
@@ -31,16 +66,15 @@ function App() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ ip_address: ipAddress }),
+                body: JSON.stringify({ ip_address: ipAddress, location: location }),
             });
-
+    
             if (response.ok) {
                 console.log('User registered successfully!');
-                setRegisteredUsers([ipAddress]);
+                setRegisteredUsers([...registeredUsers, { ip: ipAddress, location: location }]);
                 setIpAddress('');
+                setLocation('');
                 setRegistrationSuccess(true);
-              
-                
             } else {
                 console.error('Error registering user.');
                 setRegistrationSuccess(false);
@@ -50,6 +84,7 @@ function App() {
             setRegistrationSuccess(false);
         }
     };
+    
 
     
 
@@ -88,6 +123,19 @@ function App() {
                     </label>
                     {ipError && <p style={{ color: 'red' }}>{ipError}</p>}
                 </div>
+                <div>
+                    <label>
+                        Location:
+                        <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+                    </label>
+                    {locationError && <p style={{ color: 'red' }}>{locationError}</p>}
+                </div>
+
+                {registrationSuccess && (
+                    <div style={{ color: 'green', textAlign: 'center' }}>
+                        Registered successfully!
+                    </div>
+                )}
                 <div style={{ alignSelf: 'flex-end' }}>
                     <button onClick={handleSubmit} disabled={!!ipError}>
                         Register
@@ -97,10 +145,9 @@ function App() {
                     Close
                 </button>
             </Modal>
-
-
         </div>
     );
 }
 
 export default App;
+
