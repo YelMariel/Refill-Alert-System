@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Inv from '../components/inventory';
 
 const LogsConsumedComponent = () => {
   const [logsConsumedData, setLogsConsumedData] = useState(null);
@@ -27,18 +28,18 @@ const LogsConsumedComponent = () => {
     <div>
       <h2>Refill logs</h2>
       {logsConsumedData !== null ? (
-        <table>
+        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
             <tr>
               {Object.keys(logsConsumedData).map(key => (
-                <th key={key}>{key}</th>
+                <th key={key} style={{ border: '1px solid #ddd', padding: '8px' }}>{key}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             <tr>
               {Object.values(logsConsumedData).map(value => (
-                <td key={value}>{value}</td>
+                <td key={value} style={{ border: '1px solid #ddd', padding: '8px' }}>{value}</td>
               ))}
             </tr>
           </tbody>
@@ -46,6 +47,7 @@ const LogsConsumedComponent = () => {
       ) : (
         <p>Loading...</p>
       )}
+      <div><Inv/></div>
     </div>
   );
 };
