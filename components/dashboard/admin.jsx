@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import ToggleSwitch from './switch'; // Adjust the path to the actual location of your ToggleSwitch component
 import styles from "../../styles/bg.module.css"; // Adjust the relative path to match your project structure
-import Logs from '../../components/inventory';
+import Logs from '../../components/logs';
 import Adding from '../../components/Adddispensermodal';
 import Switch from '../../components/switch1';
-import Disp from  '../dispenser';
+import Disp from '../dispenser';
+import Limit from '../limit';
 
-
-
-
+import Switches from '../switches';
 
 function DateTimeComponent() {
   const [currentDateTime, setCurrentDateTime] = useState('');
@@ -98,14 +96,15 @@ export default function Dashboard({ user }) {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'Dashboard':
-        return (
-          <div className="row">
-            
-            {renderSavedTexts()}
-            <Disp/>
-            <Adding/>
-       </div>
-        );
+      return (
+        <div className="row justify-content-center align-items-center">
+          <Disp />
+          <Adding />
+        
+
+        </div>
+      );
+
 
   case 'RefillLogs':
   return (
@@ -113,8 +112,7 @@ export default function Dashboard({ user }) {
       <h2 className="fw-bold fs-10">Refill Logs</h2>
       <Logs/>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button>ADD WATER CONTAINER</button>
-        <button>Inventory</button>
+        
       </div>
     </div>
   );
@@ -122,33 +120,15 @@ export default function Dashboard({ user }) {
       case 'Change':
         return (
           <div>
-            <h2 className="fw-bold fs-5">Set the Maximum Refills of each dispenser</h2>
-            <div className="form-group">
-              <label htmlFor="maxRefills"> Maximum Refills:</label>
-              <input
-                type="number"
-                className="form-control"
-                id="maxRefills"
-                value={maxRefills}
-                onChange={(e) => setMaxRefills(e.target.value)}
-              />
-            </div>
-            <button
-              className="btn btn-primary"
-              onClick={handleMaxRefillsChange}
-              disabled={!maxRefills}
-            >
-              Change 
-            </button>
-            <Change/>
+            <h2 className="fw-bold fs-5">Set the Maximum Refills of each Dispenser</h2>
+            <Limit/>
           </div>
         );   
         case 'Switch':
           return (
             <div>
-              <h2 className="fw-bold fs-5">Dispenser Switch</h2>
-              <ToggleSwitch />
-              <Switch/>
+              <h2 className="fw-bold fs-5">Dispenser's Switches</h2>
+              <Switch/> 
             </div>
           );
        
