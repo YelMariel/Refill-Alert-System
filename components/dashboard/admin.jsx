@@ -7,7 +7,8 @@ import Switch from '../../components/switch1';
 import Disp from '../dispenser';
 import Limit from '../limit';
 
-import Switches from '../switches';
+
+
 
 function DateTimeComponent() {
   const [currentDateTime, setCurrentDateTime] = useState('');
