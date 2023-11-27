@@ -7,9 +7,6 @@ import Switch from '../../components/switch1';
 import Disp from '../dispenser';
 import Limit from '../limit';
 
-
-
-
 function DateTimeComponent() {
   const [currentDateTime, setCurrentDateTime] = useState('');
 
@@ -101,8 +98,6 @@ export default function Dashboard({ user }) {
         <div className="row justify-content-center align-items-center">
           <Disp />
           <Adding />
-        
-
         </div>
       );
 
