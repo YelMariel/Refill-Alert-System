@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styles from "../../styles/bg.module.css"; // Adjust the relative path to match your project structure
-import Logs from '../../components/logs';
-import Adding from '../../components/Adddispensermodal';
+import Logs from '../components/logs';
+import Adding from '../components/Adddispensermodal';
 import Switch from '../../components/switch1';
 import Disp from '../dispenser';
 import Limit from '../limit';
